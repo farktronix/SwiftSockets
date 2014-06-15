@@ -19,7 +19,7 @@ import Dispatch
  *
  *        Socket<T: SocketAddress>
  *
- *      and then PassiveSocket<sockaddr_in> etc. Unfinished.
+ *      and then PassiveSocket<sockaddr_in> etc. Crashes compiler.
  */
 class Socket<T: SocketAddress> {
   
