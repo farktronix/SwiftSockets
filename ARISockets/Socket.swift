@@ -21,10 +21,10 @@ import Dispatch
  *
  *      and then PassiveSocket<sockaddr_in> etc. Unfinished.
  */
-class Socket {
+class Socket<T: SocketAddress> {
   
   var fd:           CInt?
-  var boundAddress: sockaddr_in?
+  var boundAddress: T?
   var isValid:      Bool { return fd           != nil }
   var isBound:      Bool { return boundAddress != nil }
   var onClose:      ((CInt) -> Void)? = nil
@@ -39,9 +39,9 @@ class Socket {
     close() // TBD: is this OK/safe?
   }
   
-  convenience init(domain: CInt = AF_INET, type: CInt = SOCK_STREAM) {
+  convenience init(type: CInt = SOCK_STREAM) {
     // Generics: let lfd = socket(T.domain, type, 0)
-    let lfd = socket(domain, type, 0)
+    let lfd = socket(T.domain, type, 0)
     var fd:  CInt?
     if lfd != -1 {
       fd = lfd
@@ -76,7 +76,7 @@ class Socket {
   
   /* bind the socket. */
   
-  func bind(address: sockaddr_in) -> Bool {
+  func bind(address: T) -> Bool {
     if !isValid {
       return false
     }
@@ -96,21 +96,21 @@ class Socket {
     let rc = Darwin.bind(fd!, bptr, socklen_t(addr.len));
     
     if rc == 0 {
-      /* if it was a wildcard port bind, get the address */
-      boundAddress = addr.isWildcardPort ? getsockname() : addr
+      // Generics TBD: cannot check for isWildcardPort, always grab the name
+      boundAddress = getsockname()
     }
     
     return rc == 0 ? true : false
   }
   
-  func getsockname() -> sockaddr_in? {
+  func getsockname() -> T? {
     if !isValid {
       return nil
     }
     
     // FIXME: tried to encapsulate this in a sockaddrbuf which does all the
     //        ptr handling, but it ain't work (autoreleasepool issue?)
-    var baddr    = sockaddr_in()
+    var baddr    = T()
     var baddrlen = socklen_t(baddr.len)
     
     // CAST: Hope this works, essentially cast to void and then take the rawptr

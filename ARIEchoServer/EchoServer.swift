@@ -11,8 +11,9 @@ import ARISockets
 class EchoServer {
 
   let port         : Int
-  var listenSocket : PassiveSocket?
-  var openSockets  = Dictionary<CInt, ActiveSocket>(minimumCapacity: 8)
+  var listenSocket : PassiveSocket<sockaddr_in>?
+  var openSockets  =
+        Dictionary<CInt, ActiveSocket<sockaddr_in>>(minimumCapacity: 8)
   var appLog       : ((String) -> Void)?
   
   init(port: Int) {
@@ -29,7 +30,7 @@ class EchoServer {
   }
   
   func start() {
-    listenSocket = PassiveSocket(address: sockaddr_in(port: port))
+    listenSocket = PassiveSocket<sockaddr_in>(address: sockaddr_in(port: port))
     if !listenSocket {
       log("ERROR: could not create socket ...")
       return
@@ -67,7 +68,7 @@ class EchoServer {
     listenSocket = nil
   }
   
-  func sendWelcome(sock: ActiveSocket) {
+  func sendWelcome(sock: ActiveSocket<sockaddr_in>) {
     // Hm, how to use println(), this doesn't work for me:
     //   println(s, target: sock)
     // (just writes the socket as a value, likely a tuple)
@@ -84,7 +85,7 @@ class EchoServer {
     sock.write("> ")
   }
   
-  func handleIncomingData(socket: ActiveSocket) {
+  func handleIncomingData(socket: ActiveSocket<sockaddr_in>) {
     // remove from openSockets if all has been read
     let (count, block) = socket.read()
     

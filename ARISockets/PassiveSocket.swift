@@ -19,16 +19,38 @@ import Dispatch
 * Note that if the socket is bound it's still an active socket from the
 * system's PoV, it becomes an passive one when the listen call is executed.
 */
-class PassiveSocket: Socket {
+class PassiveSocket<T: SocketAddress>: Socket<T> {
   
   var backlog:      Int? = nil
   var isListening:  Bool { return backlog ? true : false; }
-  var listenSource: dispatch_source_t?
+  var listenSource: dispatch_source_t? = nil
   
   /* init */
   
-  convenience init(address: sockaddr_in) {
-    self.init(domain: sockaddr_in.domain, type: SOCK_STREAM)
+  init(fd: CInt?) {
+    // HACK: required in generic version, init lookup is bogus
+    super.init(fd: fd)
+  }
+  
+  convenience init(address: T) {
+    /*
+     * if SwiftWorks {
+     *   self.init(CInt(SOCK_STREAM)) // Swift doesn't pick up the initializer?
+     * }
+     * else { // dupe code from super's convenience init()
+     */
+    let lfd = socket(T.domain, SOCK_STREAM, 0)
+    var fd:  CInt?
+    if lfd != -1 {
+      fd = lfd
+    }
+    else {
+      // This is lame. Would like to 'return nil' ...
+      // TBD: How to do proper error handling in Swift?
+      println("Could not create passive socket.")
+    }
+
+    self.init(fd: fd)
     
     if isValid {
       reuseAddress = true
@@ -67,7 +89,7 @@ class PassiveSocket: Socket {
   }
   
   func listen(queue: dispatch_queue_t, backlog: Int = 5,
-              accept: (ActiveSocket) -> Void)
+              accept: (ActiveSocket<T>) -> Void)
     -> Bool
   {
     if !isValid {
@@ -93,7 +115,7 @@ class PassiveSocket: Socket {
         do {
           // FIXME: tried to encapsulate this in a sockaddrbuf which does all
           //        the ptr handling, but it ain't work (autoreleasepool issue?)
-          var baddr    = sockaddr_in()
+          var baddr    = T()
           var baddrlen = socklen_t(baddr.len)
           
           // CAST: Hope this works, esntly cast to void and then take the rawptr
@@ -106,7 +128,7 @@ class PassiveSocket: Socket {
             // we pass over the queue, seems convenient. Not sure what kind of
             // queue setup a typical server would want to have
             let newSocket =
-              ActiveSocket(fd: newFD, remoteAddress: baddr, queue: queue)
+              ActiveSocket<T>(fd: newFD, remoteAddress: baddr, queue: queue)
             
             accept(newSocket)
           }

@@ -25,9 +25,9 @@ import Dispatch
 * shutdown. If you have shutdown both channels the socket can be considered
 * closed.
 */
-class ActiveSocket: Socket, OutputStream {
+class ActiveSocket<T: SocketAddress>: Socket<T>, OutputStream {
   
-  var remoteAddress:  sockaddr_in?       = nil
+  var remoteAddress:  T?                 = nil
   var queue:          dispatch_queue_t?  = nil
   var readSource:     dispatch_source_t? = nil
   var sendCount:      Int                = 0
@@ -57,8 +57,12 @@ class ActiveSocket: Socket, OutputStream {
   
   /* init */
   
-  convenience init(fd: CInt?, remoteAddress: sockaddr_in?,
-                   queue: dispatch_queue_t? = nil)
+  init(fd: CInt?) {
+    // HACK: required in generic version, init lookup is bogus
+    super.init(fd: fd)
+  }
+  
+  convenience init(fd: CInt?, remoteAddress: T?, queue: dispatch_queue_t? = nil)
   {
     self.init(fd: fd)
     
@@ -89,7 +93,7 @@ class ActiveSocket: Socket, OutputStream {
   
   /* connect */
   
-  func connect(address: sockaddr_in, onConnect: () -> Void) -> Bool {
+  func connect(address: T, onConnect: () -> Void) -> Bool {
     // FIXME: make connect() asynchronous via GCD
     if !isValid {
       return false

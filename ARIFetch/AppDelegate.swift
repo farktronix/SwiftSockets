@@ -29,7 +29,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
   }
   
   
-  var socket: ActiveSocket?
+  var socket: ActiveSocket<sockaddr_in>?
 
   @IBAction func fetch(sender: NSTextField?) {
     if let oldSock = socket {
@@ -38,7 +38,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
       resultView.string = "" // clear results
     }
     
-    socket = ActiveSocket()
+    socket = ActiveSocket<sockaddr_in>()
     println("Got socket: \(socket)")
     if !socket {
       return
@@ -73,7 +73,7 @@ class AppDelegate: NSObject, NSApplicationDelegate {
     }
   }
 
-  func handleIncomingData(socket: ActiveSocket) {
+  func handleIncomingData(socket: ActiveSocket<sockaddr_in>) {
     let (count, block) = socket.read()
     
     println("got bytes: \(count)")
